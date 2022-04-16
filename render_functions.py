@@ -84,10 +84,11 @@ def render_dungeon_level(
 def render_names_at_mouse_location(
     console: Console, x: int, y: int, engine: Engine
 ) -> None:
-    mouse_x, mouse_y = engine.mouse_location
+    if engine.camera.inside_viewport(*engine.mouse_location):
+        mouse_x, mouse_y = engine.camera.viewport_to_map(*engine.mouse_location)
 
-    names_at_mouse_location = get_names_at_location(
-        x=mouse_x, y=mouse_y, game_map=engine.game_map
-    )
+        names_at_mouse_location = get_names_at_location(
+            x=mouse_x, y=mouse_y, game_map=engine.game_map
+        )
 
-    console.print(x=x, y=y, string=names_at_mouse_location)
+        console.print(x=x, y=y, string=names_at_mouse_location)

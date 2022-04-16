@@ -4,7 +4,9 @@ import random
 from typing import TYPE_CHECKING, Iterable, Iterator, Optional
 
 import numpy as np
+from tcod import FOV_SYMMETRIC_SHADOWCAST
 from tcod.console import Console
+from tcod.map import compute_fov
 
 import entity_factories
 import tile_types
@@ -58,6 +60,8 @@ class GameMap:
 
         self.downstairs_location: tuple[int, int] = (0, 0)
 
+        self.console = Console(width, height, order="F")
+
     @property
     def gamemap(self) -> GameMap:
         return self
@@ -96,7 +100,19 @@ class GameMap:
         """Return True if x and y are inside of the bounds of the map"""
         return 0 <= x < self.width and 0 <= y < self.height
 
-    def render(self, console: Console) -> None:
+    def update_fov(self, player: Actor) -> None:
+        """Recompute the field of view of the player"""
+        self.visible[:] = compute_fov(
+            self.tiles["transparent"],
+            (player.x, player.y),
+            radius=8,
+            algorithm=FOV_SYMMETRIC_SHADOWCAST,
+        )
+
+        # Add visible tiles to the explored tile list
+        self.explored |= self.visible
+
+    def render(self) -> None:
         """
         Renders the map to the console
 
@@ -104,7 +120,7 @@ class GameMap:
         If it isn't, but it's in the "explored" array, then draw it with the "dark" colors
         Otherwise, the default is "SHROUD"
         """
-        console.tiles_rgb[0 : self.width, 0 : self.height] = np.select(
+        self.console.tiles_rgb[0 : self.width, 0 : self.height] = np.select(
             condlist=[self.visible, self.explored],
             choicelist=[self.tiles["light"], self.tiles["dark"]],
             default=tile_types.SHROUD,
@@ -117,7 +133,7 @@ class GameMap:
         for entity in entities_sorted_for_rendering:
             # Only draw entities that are in the "visible" array
             if self.visible[entity.x, entity.y]:
-                console.print(
+                self.console.print(
                     x=entity.x, y=entity.y, string=entity.char, fg=entity.color
                 )
 

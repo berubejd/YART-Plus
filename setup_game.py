@@ -11,6 +11,7 @@ import tcod
 import color
 import entity_factories
 import input_handlers
+from camera import Camera
 from engine import Engine
 from game_map import GameWorld
 
@@ -20,8 +21,13 @@ background_image = tcod.image.load("data/menu_background.png")[:, :, :3]
 
 def new_game() -> Engine:
     """Return a brand new game session as an Engine instance."""
-    map_width = 80
-    map_height = 43
+    map_width = 160
+    map_height = 100
+
+    viewport_x = 2
+    viewport_y = 2
+    viewport_width = 76
+    viewport_height = 39
 
     player = copy.deepcopy(entity_factories.player)
     engine = Engine(player=player)
@@ -33,6 +39,19 @@ def new_game() -> Engine:
     )
 
     engine.game_world.generate_floor()
+
+    engine.camera = Camera(
+        x=engine.player.x,
+        y=engine.player.y,
+        viewport_x=viewport_x,
+        viewport_y=viewport_y,
+        viewport_width=viewport_width,
+        viewport_height=viewport_height,
+        map_width=engine.game_world.map_width,
+        map_height=engine.game_world.map_height,
+    )
+    engine.camera.update(engine.player)
+
     engine.update_fov()
 
     engine.message_log.add_message(

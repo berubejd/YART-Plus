@@ -4,12 +4,11 @@ import lzma
 import pickle
 from typing import TYPE_CHECKING
 
-from tcod import FOV_SYMMETRIC_SHADOWCAST
 from tcod.console import Console
-from tcod.map import compute_fov
 
 import exceptions
 import render_functions
+from camera import Camera
 from message_log import MessageLog
 
 if TYPE_CHECKING:
@@ -22,6 +21,8 @@ class Engine:
 
     game_map: GameMap
     game_world: GameWorld
+
+    camera: Camera
 
     def __init__(
         self,
@@ -39,22 +40,23 @@ class Engine:
                 except exceptions.Impossible:
                     pass  # Ignore impossible actions from npcs
 
-    # TODO: Check if we need "transparent" here
     def update_fov(self) -> None:
         """Recompute the field of view of the player"""
-        self.game_map.visible[:] = compute_fov(
-            self.game_map.tiles["transparent"],
-            (self.player.x, self.player.y),
-            radius=8,
-            algorithm=FOV_SYMMETRIC_SHADOWCAST,
-        )
+        self.camera.update(self.player)
+        self.game_map.update_fov(self.player)
 
         # Add visible tiles to the explored tile list
         self.game_map.explored |= self.game_map.visible
 
     def render(self, console: Console) -> None:
-        self.game_map.render(console=console)
+        """Render the game to the console"""
+        ## Update the game map to its offscreen console
+        self.game_map.render()
 
+        ## Render the game world viewport to the main console
+        self.camera.render_viewport(console=console, map=self.game_map.console)
+
+        # Render the user interface
         self.message_log.render(console=console, x=21, y=44, width=40, height=5)
 
         render_functions.render_bar_classic(

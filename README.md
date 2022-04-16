@@ -7,7 +7,7 @@ This is my codebase for the continued development of a Python3 and TCOD roguelik
 
 ### TODO
 
- - [ ] Scrolling map
+ - [x] Scrolling map
  - [ ] Procedural generation of an outdoor map
  - [ ] Addition of doors to dungeon corridors
  - [ ] Refactor of shared dungeon generation resources

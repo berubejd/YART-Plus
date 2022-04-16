@@ -402,14 +402,17 @@ class SelectIndexHandler(AskUserEventHandler):
         """Sets the cursor to the player when this handler is constructed."""
         super().__init__(engine)
         player = self.engine.player
-        engine.mouse_location = player.x, player.y
+        engine.mouse_location = self.engine.camera.map_to_console(player.x, player.y)
 
     def on_render(self, console: tcod.Console) -> None:
         """Highlight the tile under the cursor."""
         super().on_render(console)
+
         x, y = self.engine.mouse_location
-        console.tiles_rgb["bg"][x, y] = color.white
-        console.tiles_rgb["fg"][x, y] = color.black
+
+        if self.engine.camera.inside_viewport(x, y):
+            console.tiles_rgb["bg"][x, y] = color.white
+            console.tiles_rgb["fg"][x, y] = color.black
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
         """Check for key movement or confirmation keys."""
@@ -427,22 +430,35 @@ class SelectIndexHandler(AskUserEventHandler):
             dx, dy = MOVE_KEYS[key]
             x += dx * modifier
             y += dy * modifier
+
             # Clamp the cursor index to the map size.
-            x = max(0, min(x, self.engine.game_map.width - 1))
-            y = max(0, min(y, self.engine.game_map.height - 1))
+            x = self.engine.camera.clamp(
+                x,
+                self.engine.camera.viewport_x,
+                self.engine.camera.viewport_x + self.engine.camera.viewport_width - 1,
+            )
+            y = self.engine.camera.clamp(
+                y,
+                self.engine.camera.viewport_y,
+                self.engine.camera.viewport_y + self.engine.camera.viewport_height - 1,
+            )
             self.engine.mouse_location = x, y
             return None
         elif key in CONFIRM_KEYS:
-            return self.on_index_selected(*self.engine.mouse_location)
+            return self.on_index_selected(
+                *self.engine.camera.viewport_to_map(*self.engine.mouse_location)
+            )
         return super().ev_keydown(event)
 
     def ev_mousebuttondown(
         self, event: tcod.event.MouseButtonDown
     ) -> Optional[ActionOrHandler]:
         """Left click confirms a selection."""
-        if self.engine.game_map.in_bounds(*event.tile):
+        click_location = self.engine.camera.viewport_to_map(*event.tile)
+
+        if self.engine.game_map.in_bounds(*click_location):
             if event.button == 1:
-                return self.on_index_selected(*event.tile)
+                return self.on_index_selected(*click_location)
         return super().ev_mousebuttondown(event)
 
     def on_index_selected(self, x: int, y: int) -> Optional[ActionOrHandler]:
@@ -494,10 +510,6 @@ class AreaRangedAttackHandler(SelectIndexHandler):
 
         # Draw a rectangle around the targeted area, so the player can see the affected tiles.
         console.draw_frame(
-            # x=x - self.radius - 1,
-            # y=y - self.radius - 1,
-            # width=self.radius**2,
-            # height=self.radius**2,
             x=x - self.radius,
             y=y - self.radius,
             width=self.radius * 2 + 1,
