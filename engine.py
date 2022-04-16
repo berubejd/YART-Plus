@@ -4,12 +4,13 @@ import lzma
 import pickle
 from typing import TYPE_CHECKING
 
+from tcod import FOV_SYMMETRIC_SHADOWCAST
 from tcod.console import Console
 from tcod.map import compute_fov
 
 import exceptions
-from message_log import MessageLog
 import render_functions
+from message_log import MessageLog
 
 if TYPE_CHECKING:
     from entity import Actor
@@ -38,12 +39,14 @@ class Engine:
                 except exceptions.Impossible:
                     pass  # Ignore impossible actions from npcs
 
+    # TODO: Check if we need "transparent" here
     def update_fov(self) -> None:
         """Recompute the field of view of the player"""
         self.game_map.visible[:] = compute_fov(
             self.game_map.tiles["transparent"],
             (self.player.x, self.player.y),
             radius=8,
+            algorithm=FOV_SYMMETRIC_SHADOWCAST,
         )
 
         # Add visible tiles to the explored tile list
