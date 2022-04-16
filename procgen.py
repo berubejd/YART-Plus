@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Iterator
 
 import tcod
 
-import entity_factories
 import tile_types
 from game_map import GameMap
 
