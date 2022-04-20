@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
+import pygame
 import tcod
 
 import actions
@@ -523,6 +524,27 @@ class AreaRangedAttackHandler(SelectIndexHandler):
 
 
 class MainGameEventHandler(EventHandler):
+    def __init__(self, engine: Engine):
+        super().__init__(engine)
+
+        # Define channels
+        main_menu_channel = pygame.mixer.Channel(0)
+        dungeon_channel = pygame.mixer.Channel(1)
+
+        # Fade out the main menu music
+        if main_menu_channel.get_busy():
+            main_menu_channel.fadeout(3000)
+
+        # Define and fade in "adventure" music if not running
+        if not dungeon_channel.get_busy():
+            dungeon_music_path = Path(
+                "data/Lesfm-heroic-story-drums-ampamp-bass-9827.mp3"
+            )
+
+            dungeon_music = pygame.mixer.Sound(dungeon_music_path.as_posix())
+            dungeon_music.set_volume(0.6)
+            dungeon_channel.play(dungeon_music, loops=-1, fade_ms=3000)
+
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
         """Handle keypresses"""
 

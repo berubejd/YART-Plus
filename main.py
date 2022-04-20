@@ -1,5 +1,10 @@
+import os
 import traceback
+from pathlib import Path
 
+# Sadly, this is required to silence the PyGame ad from appearing on startup
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
+import pygame
 import tcod
 
 import color
@@ -18,6 +23,21 @@ def save_game(handler: input_handlers.BaseEventHandler, filename: str) -> None:
 def main() -> None:
     screen_width = 80
     screen_height = 50
+
+    # Initialize audio
+    pygame.mixer.init()
+
+    # Define channels
+    main_menu_channel = pygame.mixer.Channel(0)
+    dungeon_channel = pygame.mixer.Channel(1)
+
+    # Define music
+    menu_music_path = Path("data/Lesfm-kingdom-of-fantasy-version-60s-10817.mp3")
+
+    # Start main menu music
+    main_menu_music = pygame.mixer.Sound(menu_music_path.as_posix())
+    main_menu_music.set_volume(0.6)
+    main_menu_channel.play(main_menu_music, loops=-1, fade_ms=3000)
 
     # TCOD tileset
     # tileset = tcod.tileset.load_tilesheet(
@@ -69,6 +89,8 @@ def main() -> None:
         except (SystemExit, BaseException):  # Save and quit.
             save_game(handler, "savegame.sav")
             raise
+        finally:
+            pygame.mixer.fadeout(1000)
 
 
 if __name__ == "__main__":
